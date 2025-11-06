@@ -160,7 +160,7 @@ class EdificioGobierno : AppCompatActivity(),
 
         serverConnectionManager.onlineServerManager.setListener(this)
 
-        // Inicializar el controlador del zombie
+        // Inicializar el controlador del zombie CON EL MAPA CORRECTO
         zombieController = CafeteriaZombieController(
             onZombiePositionChanged = { zombieId, position ->
                 runOnUiThread {
@@ -174,7 +174,8 @@ class EdificioGobierno : AppCompatActivity(),
             },
             onPlayerCaught = {
                 onZombieCaughtPlayer()
-            }
+            },
+            currentMap = MapMatrixProvider.MAP_EDIFICIO_GOBIERNO // ← AÑADIR ESTO
         )
 
         connectToOnlineServer()

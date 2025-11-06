@@ -15,7 +15,8 @@ import kotlin.random.Random
  */
 class CafeteriaZombieController(
     private val onZombiePositionChanged: (String, Pair<Int, Int>) -> Unit,
-    private val onPlayerCaught: () -> Unit
+    private val onPlayerCaught: () -> Unit,
+    private val currentMap: String = MapMatrixProvider.MAP_CAFETERIA // Parámetro nuevo para el mapa actual
 ) {
     companion object {
         private const val TAG = "ZombieController"
@@ -239,7 +240,7 @@ class CafeteriaZombieController(
         // Iniciar el bucle de actualización
         startUpdateLoop()
 
-        Log.d(TAG, "Minijuego zombie iniciado con dificultad $difficulty y ${zombies.size} zombies")
+        Log.d(TAG, "Minijuego zombie iniciado con dificultad $difficulty y ${zombies.size} zombies en mapa $currentMap")
     }
 
     /**
@@ -302,22 +303,51 @@ class CafeteriaZombieController(
 
         // Crear zombies
         for (i in 0 until count) {
-            // Buscar posición inicial válida para los zombies (no en paredes)
             var xPos: Int
             var yPos: Int
             var attempts = 0
+
+            // Buscar posición válida específica para el mapa actual
             do {
-                xPos = Random.nextInt(10, 30)
-                yPos = Random.nextInt(10, 30)
+                // Coordenadas específicas según el mapa
+                when (currentMap) {
+                    MapMatrixProvider.MAP_EDIFICIO_GOBIERNO -> {
+                        // Áreas caminables del Edificio de Gobierno (pasillos principales)
+                        xPos = when {
+                            Random.nextBoolean() -> Random.nextInt(1, 5)   // Pasillo superior
+                            else -> Random.nextInt(35, 39) // Pasillo inferior
+                        }
+                        yPos = when {
+                            Random.nextBoolean() -> Random.nextInt(1, 5)   // Pasillo izquierdo
+                            else -> Random.nextInt(35, 39) // Pasillo derecho
+                        }
+                    }
+                    else -> { // Cafetería por defecto
+                        xPos = Random.nextInt(10, 30)
+                        yPos = Random.nextInt(10, 30)
+                    }
+                }
                 attempts++
-                // Si después de muchos intentos no encontramos una posición válida, usar una posición fija
-                if (attempts > 100) {
-                    Log.w(TAG, "No se pudo encontrar una posición válida después de $attempts intentos")
-                    xPos = 20
-                    yPos = 20
+
+                // Si después de muchos intentos no encontramos una posición válida
+                if (attempts > 50) {
+                    Log.w(TAG, "No se pudo encontrar posición válida después de $attempts intentos")
+                    // Usar posición de respaldo específica para el mapa
+                    when (currentMap) {
+                        MapMatrixProvider.MAP_EDIFICIO_GOBIERNO -> {
+                            xPos = 16
+                            yPos = 5  // Posición central caminable en pasillo
+                        }
+                        else -> {
+                            xPos = 20
+                            yPos = 20
+                        }
+                    }
                     break
                 }
             } while (!isValidPosition(xPos, yPos))
+
+            Log.d(TAG, "Zombie $i creado en posición válida: ($xPos, $yPos) en mapa $currentMap")
 
             val zombie = Zombie(
                 id = "zombie_$i",
@@ -327,8 +357,6 @@ class CafeteriaZombieController(
             )
 
             zombies.add(zombie)
-
-            // Notificar posición inicial del zombie
             onZombiePositionChanged(zombie.id, zombie.position)
         }
     }
@@ -366,7 +394,7 @@ class CafeteriaZombieController(
     fun setZombiePosition(zombieId: String, position: Pair<Int, Int>) {
         // Solo aceptar posiciones válidas
         if (!isValidPosition(position.first, position.second)) {
-            Log.d(TAG, "Posición inválida para zombie: $position")
+            Log.d(TAG, "Posición inválida para zombie: $position en mapa $currentMap")
             return
         }
 
@@ -409,6 +437,7 @@ class CafeteriaZombieController(
 
     /**
      * Verifica si una posición es válida (no es una pared u obstáculo)
+     * Usa la matriz de colisión del mapa actual
      */
     private fun isValidPosition(x: Int, y: Int): Boolean {
         // Verificar límites del mapa
@@ -417,17 +446,23 @@ class CafeteriaZombieController(
         }
 
         try {
-            // Obtener la matriz de la cafetería directamente del proveedor
-            val cafeteriaMatrix = MapMatrixProvider.getMatrixForMap(MapMatrixProvider.MAP_CAFETERIA)
+            // Obtener la matriz del mapa ACTUAL
+            val currentMapMatrix = MapMatrixProvider.getMatrixForMap(currentMap)
 
             // Verificar colisiones con la matriz del mapa
-            val cellType = cafeteriaMatrix[y][x]
+            val cellType = currentMapMatrix[y][x]
 
             // Los zombies pueden moverse por caminos (PATH=2) y áreas interactivas (INTERACTIVE=0)
             // pero no por paredes (WALL=1) ni obstáculos (INACCESSIBLE=3)
-            return cellType == MapMatrixProvider.PATH || cellType == MapMatrixProvider.INTERACTIVE
+            val isValid = cellType == MapMatrixProvider.PATH || cellType == MapMatrixProvider.INTERACTIVE
+
+            if (!isValid) {
+                Log.d(TAG, "Posición inválida ($x, $y): tipo celda = $cellType en mapa $currentMap")
+            }
+
+            return isValid
         } catch (e: Exception) {
-            Log.e(TAG, "Error accediendo a la matriz: ${e.message}")
+            Log.e(TAG, "Error accediendo a la matriz del mapa $currentMap: ${e.message}")
             // Si hay un error, consideramos que la posición no es válida por seguridad
             return false
         }
@@ -454,5 +489,12 @@ class CafeteriaZombieController(
      */
     fun getDifficulty(): Int {
         return currentDifficulty
+    }
+
+    /**
+     * Devuelve el mapa actual donde se ejecuta el juego
+     */
+    fun getCurrentMap(): String {
+        return currentMap
     }
 }

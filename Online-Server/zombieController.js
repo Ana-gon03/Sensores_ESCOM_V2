@@ -15,15 +15,32 @@ function isValidMove(x, y, mapName = 'escom_cafeteria') {
     }
 
     // Seleccionar la matriz de colisión correcta según el mapa
-    const collisionMatrix = mapName === 'edificio_gobierno'
-        ? edificioGobiernoCollisionMatrix
-        : cafeteriaCollisionMatrix;
+    const collisionMatrix = getCollisionMatrixForMap(mapName);
 
     // Verificar la matriz de colisión
     const cellType = collisionMatrix[y][x];
 
     // SOLO las celdas tipo PATH (2) son válidas para zombies
-    return cellType === 2;
+    const isValid = cellType === 2;
+
+    if (!isValid) {
+        console.log(`🚫 Zombie no puede moverse a (${x}, ${y}): ${getCellTypeName(cellType)} en mapa ${mapName}`);
+    }
+
+    return isValid;
+}
+
+/**
+ * Función auxiliar para obtener la matriz de colisión según el mapa
+ */
+function getCollisionMatrixForMap(mapName) {
+    switch(mapName) {
+        case 'edificio_gobierno':
+            return edificioGobiernoCollisionMatrix;
+        case 'escom_cafeteria':
+        default:
+            return cafeteriaCollisionMatrix;
+    }
 }
 
 /**
@@ -38,27 +55,22 @@ function isValidPlayerPosition(x, y, mapName = 'escom_cafeteria') {
     }
 
     // Seleccionar la matriz de colisión correcta según el mapa
-    const collisionMatrix = mapName === 'edificio_gobierno'
-        ? edificioGobiernoCollisionMatrix
-        : cafeteriaCollisionMatrix;
+    const collisionMatrix = getCollisionMatrixForMap(mapName);
 
     // Verificar la matriz de colisión
     const cellType = collisionMatrix[y][x];
-
-    // DEBUG: Verificar posición del jugador
-    console.log(`👤 Jugador en (${x}, ${y}): ${cellType} - ${getCellTypeName(cellType)}`);
 
     // Los jugadores pueden estar en PATH (2) e INTERACTIVE (0)
     const isValid = cellType === 2 || cellType === 0;
 
     if (!isValid) {
-        console.log(`🚫 POSICIÓN INVÁLIDA PARA JUGADOR: (${x}, ${y}) es ${getCellTypeName(cellType)}`);
-    } else {
-        console.log(`✅ Posición válida para jugador: (${x}, ${y})`);
+        console.log(`🚫 POSICIÓN INVÁLIDA PARA JUGADOR: (${x}, ${y}) es ${getCellTypeName(cellType)} en mapa ${mapName}`);
     }
 
     return isValid;
 }
+
+// ... el resto del código de zombieController.js se mantiene igual ...
 
 /**
  * Función para corregir la posición del jugador si está en un lugar inválido

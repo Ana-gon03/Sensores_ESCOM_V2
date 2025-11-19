@@ -70,8 +70,6 @@ function isValidPlayerPosition(x, y, mapName = 'escom_cafeteria') {
     return isValid;
 }
 
-// ... el resto del código de zombieController.js se mantiene igual ...
-
 /**
  * Función para corregir la posición del jugador si está en un lugar inválido
  */
@@ -371,6 +369,23 @@ function initializeAndValidateGame(zombies, playerData, mapName) {
     return { zombies, playerData };
 }
 
+/**
+ * Función para procesar actualizaciones de zombies desde el servidor (multiplayer)
+ */
+function processServerZombieUpdate(zombiesData, currentMap) {
+    console.log(`🔄 Procesando actualización de zombies del servidor: ${zombiesData.length} zombies`);
+
+    // Aquí el cliente actualizará sus zombies locales con los datos del servidor
+    // Esta función será llamada desde el cliente cuando reciba actualizaciones del servidor
+
+    return zombiesData.map(zombieData => ({
+        id: zombieData.id,
+        position: { x: zombieData.x, y: zombieData.y },
+        target: null,
+        difficulty: zombieData.difficulty || 1
+    }));
+}
+
 // Exportar funciones
 module.exports = {
     // Funciones para zombies
@@ -388,5 +403,8 @@ module.exports = {
     // Funciones de utilidad
     getCellTypeName,
     debugPlayerZombiePositions,
-    initializeAndValidateGame
+    initializeAndValidateGame,
+
+    // Nueva función para multiplayer
+    processServerZombieUpdate
 };
